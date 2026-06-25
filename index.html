@@ -499,7 +499,7 @@ select option{background:#fff}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ══ FIREBASE CONFIG ══
 const firebaseConfig = {
@@ -547,14 +547,20 @@ function saveLocal(){
   try{ localStorage.setItem('mv2', JSON.stringify(st)); }catch(e){}
 }
 
+// Marca de tiempo de la última escritura propia (para no pisarnos a nosotros mismos)
+let lastWriteTs = 0;
+let ignoreNextSnapshot = false;
+
 async function syncToCloud(){
-  if(!isOnline) return;
   showSync('syncing', 'Sincronizando...');
   try {
-    await setDoc(doc(db, 'datos', DOC_ID), st);
+    lastWriteTs = Date.now();
+    ignoreNextSnapshot = true; // el snapshot que dispara este setDoc lo ignoramos
+    await setDoc(doc(db, 'datos', DOC_ID), { ...st, _ts: lastWriteTs });
     showSync('ok', '✓ Guardado en la nube');
   } catch(e) {
     showSync('err', 'Error al sincronizar — datos guardados local');
+    console.error('Firebase write error:', e);
   }
 }
 
@@ -564,30 +570,68 @@ function save(){
   syncTimeout = setTimeout(syncToCloud, 800);
 }
 
-async function load(){
-  try{ const s=localStorage.getItem('mv2'); if(s) st=JSON.parse(s); }catch(e){}
-  if(isOnline){
-    showSync('syncing','Cargando datos...');
-    try{
-      const snap = await getDoc(doc(db,'datos',DOC_ID));
-      if(snap.exists()){
-        const cloudData = snap.data();
-        const localSales = Object.values(st.salesByDate||{}).flat().length;
-        const cloudSales = Object.values(cloudData.salesByDate||{}).flat().length;
-        if(cloudSales >= localSales){
-          st = cloudData;
-          saveLocal();
-        }
-        showSync('ok','✓ Datos sincronizados');
-      } else {
-        showSync('ok','✓ Conectado a la nube');
-      }
-    } catch(e){
-      showSync('err','Sin conexión — usando datos locales');
-    }
-  }
+function applyCloudData(cloudData){
+  // Quitar el campo interno antes de usar
+  const { _ts, ...data } = cloudData;
+  st = data;
+  if(!st.products) st.products = [];
+  if(!st.salesByDate) st.salesByDate = {};
+  saveLocal();
   renderHeader();
   renderProdGrid();
+  // Refrescar pantalla activa
+  const activeScreen = document.querySelector('.screen.active');
+  if(activeScreen){
+    const id = activeScreen.id;
+    if(id==='screen-resumen') renderResumen();
+    if(id==='screen-historial') renderHistorial();
+    if(id==='screen-productos') renderProdAdmin();
+  }
+}
+
+async function load(){
+  // 1. Cargar local primero (instantáneo, sin esperar red)
+  try{ const s=localStorage.getItem('mv2'); if(s){ const p=JSON.parse(s); st=p; delete st._ts; } }catch(e){}
+  renderHeader();
+  renderProdGrid();
+
+  // 2. Suscribirse a cambios en tiempo real con onSnapshot
+  showSync('syncing','Conectando a la nube...');
+  try{
+    onSnapshot(
+      doc(db,'datos',DOC_ID),
+      (snap) => {
+        if(!snap.exists()){
+          // Documento no existe aún — subir datos locales
+          showSync('ok','✓ Conectado (sin datos en nube)');
+          if(Object.keys(st.salesByDate||{}).length || st.products?.length){
+            syncToCloud();
+          }
+          return;
+        }
+        const cloudData = snap.data();
+        const cloudTs = cloudData._ts || 0;
+
+        if(ignoreNextSnapshot){
+          // Este snapshot lo generamos nosotros mismos, ignorar
+          ignoreNextSnapshot = false;
+          showSync('ok','✓ Guardado en la nube');
+          return;
+        }
+
+        // Snapshot viene de OTRO dispositivo — siempre aplicar
+        applyCloudData(cloudData);
+        showSync('ok','✓ Sincronizado');
+      },
+      (err) => {
+        console.error('Firebase snapshot error:', err);
+        showSync('err','Sin conexión a la nube — datos locales');
+      }
+    );
+  } catch(e){
+    showSync('err','Error al conectar con la nube');
+    console.error(e);
+  }
 }
 
 // ══ FORMAT ══
