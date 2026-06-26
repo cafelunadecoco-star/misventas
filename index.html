@@ -213,6 +213,19 @@ select option{background:#fff}
 /* ── DIVIDER ── */
 .divider{height:1px;background:var(--border);margin:12px 0}
 
+/* ── PAGO MIXTO ── */
+.tag-mixto{background:#F3E8FF;color:#7C3AED}
+.mix-panel{display:none;background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-top:4px;border:1.5px solid var(--border)}
+.mix-panel.visible{display:block}
+.mix-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.mix-row:last-child{margin-bottom:0}
+.mix-label{font-size:.8rem;font-weight:700;color:var(--text2);min-width:90px}
+.mix-input{flex:1;padding:9px 12px;font-size:.9rem}
+.mix-remaining{font-size:.78rem;font-weight:700;text-align:center;padding:6px 10px;border-radius:8px;margin-top:8px}
+.mix-remaining.ok{background:#E8F5E9;color:var(--green)}
+.mix-remaining.over{background:#FDECEA;color:var(--red)}
+.mix-remaining.pending{background:#FFF8E1;color:var(--yellow-dark)}
+
 /* ── SYNC STATUS ── */
 #syncBar{position:fixed;top:0;left:0;right:0;max-width:480px;margin:0 auto;z-index:999;padding:6px 16px;font-size:.75rem;font-weight:700;text-align:center;display:none;transition:all .3s}
 #syncBar.syncing{background:#FFF8E1;color:var(--yellow-dark);display:block}
@@ -264,7 +277,7 @@ select option{background:#fff}
     </div>
     <div class="card">
       <div class="card-label">Forma de pago</div>
-      <div class="pay-opts">
+      <div class="pay-opts" style="grid-template-columns:repeat(2,1fr)">
         <div class="pay-opt" data-m="efectivo" onclick="selPay(this)">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
           Efectivo
@@ -277,6 +290,26 @@ select option{background:#fff}
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
           Transfer.
         </div>
+        <div class="pay-opt" data-m="mixto" onclick="selPay(this)">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          Mixto
+        </div>
+      </div>
+      <!-- Panel pago mixto -->
+      <div class="mix-panel" id="mixPanel">
+        <div class="mix-row">
+          <span class="mix-label">💵 Efectivo</span>
+          <input type="number" class="mix-input" id="mixEfectivo" placeholder="0" inputmode="numeric" oninput="onMixInput()"/>
+        </div>
+        <div class="mix-row">
+          <span class="mix-label">💳 Tarjeta</span>
+          <input type="number" class="mix-input" id="mixTarjeta" placeholder="0" inputmode="numeric" oninput="onMixInput()"/>
+        </div>
+        <div class="mix-row">
+          <span class="mix-label">🔄 Transfer.</span>
+          <input type="number" class="mix-input" id="mixTransferencia" placeholder="0" inputmode="numeric" oninput="onMixInput()"/>
+        </div>
+        <div class="mix-remaining" id="mixRemaining"></div>
       </div>
       <button class="btn btn-green" onclick="registrar()">
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
@@ -469,7 +502,7 @@ select option{background:#fff}
     <input type="hidden" id="sEditId"/>
     <div class="field">
       <label>Forma de pago</label>
-      <div class="pay-opts" id="sEditPayOpts">
+      <div class="pay-opts" id="sEditPayOpts" style="grid-template-columns:repeat(2,1fr)">
         <div class="pay-opt" data-m="efectivo" onclick="selSalePay(this)">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
           Efectivo
@@ -482,6 +515,26 @@ select option{background:#fff}
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
           Transfer.
         </div>
+        <div class="pay-opt" data-m="mixto" onclick="selSalePay(this)">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          Mixto
+        </div>
+      </div>
+      <!-- Panel mixto en edición -->
+      <div class="mix-panel" id="sEditMixPanel">
+        <div class="mix-row">
+          <span class="mix-label">💵 Efectivo</span>
+          <input type="number" class="mix-input" id="sEditMixEfectivo" placeholder="0" inputmode="numeric" oninput="onSEditMixInput()"/>
+        </div>
+        <div class="mix-row">
+          <span class="mix-label">💳 Tarjeta</span>
+          <input type="number" class="mix-input" id="sEditMixTarjeta" placeholder="0" inputmode="numeric" oninput="onSEditMixInput()"/>
+        </div>
+        <div class="mix-row">
+          <span class="mix-label">🔄 Transfer.</span>
+          <input type="number" class="mix-input" id="sEditMixTransferencia" placeholder="0" inputmode="numeric" oninput="onSEditMixInput()"/>
+        </div>
+        <div class="mix-remaining" id="sEditMixRemaining"></div>
       </div>
     </div>
     <div class="field">
@@ -833,12 +886,39 @@ function renderCartView(){
 }
 window.clearCart = function(){
   cart={}; payMethod=null;
-  document.querySelectorAll('.pay-opt').forEach(e=>e.classList.remove('sel'));
+  document.querySelectorAll('#cartSection .pay-opt').forEach(e=>e.classList.remove('sel'));
+  document.getElementById('mixPanel').classList.remove('visible');
+  document.getElementById('mixEfectivo').value='';
+  document.getElementById('mixTarjeta').value='';
+  document.getElementById('mixTransferencia').value='';
   renderProdGrid(); renderCartView();
 }
 window.selPay = function(el){
-  document.querySelectorAll('.pay-opt').forEach(e=>e.classList.remove('sel'));
+  document.querySelectorAll('#cartSection .pay-opt').forEach(e=>e.classList.remove('sel'));
   el.classList.add('sel'); payMethod=el.dataset.m;
+  const panel=document.getElementById('mixPanel');
+  if(payMethod==='mixto'){
+    panel.classList.add('visible');
+    onMixInput();
+  } else {
+    panel.classList.remove('visible');
+  }
+}
+window.onMixInput = function(){
+  const total = parseFloat(document.getElementById('cartTotal').textContent.replace(/[^0-9]/g,''))||0;
+  const ef  = parseFloat(document.getElementById('mixEfectivo').value)||0;
+  const ta  = parseFloat(document.getElementById('mixTarjeta').value)||0;
+  const tr  = parseFloat(document.getElementById('mixTransferencia').value)||0;
+  const asignado = ef+ta+tr;
+  const resto = total - asignado;
+  const rem = document.getElementById('mixRemaining');
+  if(Math.abs(resto)<1){
+    rem.textContent='✓ Total cubierto'; rem.className='mix-remaining ok';
+  } else if(resto>0){
+    rem.textContent='Falta por asignar: '+fmt(resto); rem.className='mix-remaining pending';
+  } else {
+    rem.textContent='Excede el total en: '+fmt(-resto); rem.className='mix-remaining over';
+  }
 }
 window.registrar = function(){
   const entries=Object.entries(cart).filter(([,q])=>q>0);
@@ -850,9 +930,25 @@ window.registrar = function(){
     total+=p.price*qty;
     return{name:p.name,price:p.price,qty};
   });
+  // Validar pago mixto
+  let mixDetails = null;
+  if(payMethod==='mixto'){
+    const ef = parseFloat(document.getElementById('mixEfectivo').value)||0;
+    const ta = parseFloat(document.getElementById('mixTarjeta').value)||0;
+    const tr = parseFloat(document.getElementById('mixTransferencia').value)||0;
+    const asignado = ef+ta+tr;
+    if(Math.abs(asignado - total) >= 1){
+      toast('El total mixto ('+fmt(asignado)+') no coincide con '+fmt(total)); return;
+    }
+    mixDetails = { efectivo:ef, tarjeta:ta, transferencia:tr };
+  }
   const key=todayKey();
   if(!st.salesByDate[key]) st.salesByDate[key]=[];
-  st.salesByDate[key].push({id:Date.now().toString(),time:new Date().toISOString(),items,total,method:payMethod});
+  st.salesByDate[key].push({
+    id:Date.now().toString(), time:new Date().toISOString(),
+    items, total, method:payMethod,
+    ...(mixDetails && {mixDetails})
+  });
   save(); renderHeader(); clearCart();
   toast('¡Venta registrada! '+fmt(total),'green');
 }
@@ -874,8 +970,17 @@ function renderSummaryData(sales, prefix){
   document.getElementById(prefix+'Count').textContent=sales.length;
   const items=sales.reduce((a,v)=>a+v.items.reduce((b,i)=>b+i.qty,0),0);
   document.getElementById(prefix+'Items').textContent=items;
-  const byM={efectivo:0,tarjeta:0,transferencia:0};
-  sales.forEach(v=>{byM[v.method]=(byM[v.method]||0)+v.total;});
+  const byM={efectivo:0,tarjeta:0,transferencia:0,mixto:0};
+  sales.forEach(v=>{
+    if(v.method==='mixto' && v.mixDetails){
+      byM.efectivo += v.mixDetails.efectivo||0;
+      byM.tarjeta  += v.mixDetails.tarjeta||0;
+      byM.transferencia += v.mixDetails.transferencia||0;
+      byM.mixto += v.total; // para el chip del tag
+    } else {
+      byM[v.method]=(byM[v.method]||0)+v.total;
+    }
+  });
   document.getElementById(prefix+'Efectivo').textContent=fmt(byM.efectivo);
   document.getElementById(prefix+'Tarjeta').textContent=fmt(byM.tarjeta);
   document.getElementById(prefix+'Transferencia').textContent=fmt(byM.transferencia);
@@ -903,7 +1008,15 @@ function renderSummaryData(sales, prefix){
       <div class="sr-left">
         <div class="sr-time">${fmtTime(v.time)}${dateBadge}</div>
         <div class="sr-desc">${v.items.map(i=>`${i.qty}× ${i.name}`).join(', ')}</div>
-        <span class="sr-tag tag-${v.method}">${v.method}</span>
+        ${v.method==='mixto' && v.mixDetails
+          ? `<span class="sr-tag tag-mixto">mixto</span>
+             <span style="font-size:.63rem;color:var(--muted);margin-left:4px">${[
+               v.mixDetails.efectivo?'💵'+fmt(v.mixDetails.efectivo):'',
+               v.mixDetails.tarjeta?'💳'+fmt(v.mixDetails.tarjeta):'',
+               v.mixDetails.transferencia?'🔄'+fmt(v.mixDetails.transferencia):''
+             ].filter(Boolean).join(' ')}</span>`
+          : `<span class="sr-tag tag-${v.method}">${v.method}</span>`
+        }
       </div>
       <div class="sr-right">
         <div class="sr-total">${fmt(v.total)}</div>
@@ -937,6 +1050,21 @@ window.openEditSale = function(dateKey, saleId){
   document.querySelectorAll('#sEditPayOpts .pay-opt').forEach(e=>{
     e.classList.toggle('sel', e.dataset.m===sale.method);
   });
+  // Panel mixto
+  const sEditMixPanel = document.getElementById('sEditMixPanel');
+  if(sale.method==='mixto'){
+    sEditMixPanel.classList.add('visible');
+    document.getElementById('sEditMixEfectivo').value = sale.mixDetails?.efectivo||'';
+    document.getElementById('sEditMixTarjeta').value  = sale.mixDetails?.tarjeta||'';
+    document.getElementById('sEditMixTransferencia').value = sale.mixDetails?.transferencia||'';
+    // defer until total is rendered
+    setTimeout(onSEditMixInput, 50);
+  } else {
+    sEditMixPanel.classList.remove('visible');
+    document.getElementById('sEditMixEfectivo').value='';
+    document.getElementById('sEditMixTarjeta').value='';
+    document.getElementById('sEditMixTransferencia').value='';
+  }
   // Copy items for editing
   saleEditItems = sale.items.map(i=>({...i}));
   renderSaleEditItems();
@@ -947,6 +1075,29 @@ window.selSalePay = function(el){
   document.querySelectorAll('#sEditPayOpts .pay-opt').forEach(e=>e.classList.remove('sel'));
   el.classList.add('sel');
   saleEditPayMethod = el.dataset.m;
+  const panel = document.getElementById('sEditMixPanel');
+  if(saleEditPayMethod==='mixto'){
+    panel.classList.add('visible');
+    onSEditMixInput();
+  } else {
+    panel.classList.remove('visible');
+  }
+}
+window.onSEditMixInput = function(){
+  const total = parseFloat(document.getElementById('sEditTotal').textContent.replace(/[^0-9]/g,''))||0;
+  const ef = parseFloat(document.getElementById('sEditMixEfectivo').value)||0;
+  const ta = parseFloat(document.getElementById('sEditMixTarjeta').value)||0;
+  const tr = parseFloat(document.getElementById('sEditMixTransferencia').value)||0;
+  const asignado = ef+ta+tr;
+  const resto = total - asignado;
+  const rem = document.getElementById('sEditMixRemaining');
+  if(Math.abs(resto)<1){
+    rem.textContent='✓ Total cubierto'; rem.className='mix-remaining ok';
+  } else if(resto>0){
+    rem.textContent='Falta: '+fmt(resto); rem.className='mix-remaining pending';
+  } else {
+    rem.textContent='Excede en: '+fmt(-resto); rem.className='mix-remaining over';
+  }
 }
 
 function renderSaleEditItems(){
@@ -984,7 +1135,6 @@ window.saveSaleEdit = function(){
   const idx = arr.findIndex(s=>s.id===saleId);
   if(idx === -1) return;
   if(saleEditItems.length === 0){
-    // No items left — delete the sale
     arr.splice(idx, 1);
     if(arr.length === 0) delete st.salesByDate[dateKey];
     save(); renderHeader(); renderResumen(); initHistorial();
@@ -993,7 +1143,19 @@ window.saveSaleEdit = function(){
     return;
   }
   const total = saleEditItems.reduce((a,i)=>a+i.price*i.qty, 0);
-  arr[idx] = { ...arr[idx], items: saleEditItems, total, method: saleEditPayMethod };
+  // Validar mixto
+  let mixDetails = null;
+  if(saleEditPayMethod==='mixto'){
+    const ef = parseFloat(document.getElementById('sEditMixEfectivo').value)||0;
+    const ta = parseFloat(document.getElementById('sEditMixTarjeta').value)||0;
+    const tr = parseFloat(document.getElementById('sEditMixTransferencia').value)||0;
+    if(Math.abs(ef+ta+tr - total) >= 1){
+      toast('El total mixto no coincide con '+fmt(total)); return;
+    }
+    mixDetails = { efectivo:ef, tarjeta:ta, transferencia:tr };
+  }
+  arr[idx] = { ...arr[idx], items: saleEditItems, total, method: saleEditPayMethod,
+    ...(mixDetails ? {mixDetails} : {mixDetails: null}) };
   save(); renderHeader(); renderResumen(); renderHistorial();
   closeModal('modalSale');
   toast('Venta actualizada ✓','green');
@@ -1079,7 +1241,15 @@ function updateHistStats(sales){
   const items=sales.reduce((a,v)=>a+v.items.reduce((b,i)=>b+i.qty,0),0);
   document.getElementById('hItems').textContent=items;
   const byM={efectivo:0,tarjeta:0,transferencia:0};
-  sales.forEach(v=>{byM[v.method]=(byM[v.method]||0)+v.total;});
+  sales.forEach(v=>{
+    if(v.method==='mixto' && v.mixDetails){
+      byM.efectivo += v.mixDetails.efectivo||0;
+      byM.tarjeta  += v.mixDetails.tarjeta||0;
+      byM.transferencia += v.mixDetails.transferencia||0;
+    } else {
+      byM[v.method]=(byM[v.method]||0)+v.total;
+    }
+  });
   document.getElementById('hEfectivo').textContent=fmt(byM.efectivo);
   document.getElementById('hTarjeta').textContent=fmt(byM.tarjeta);
   document.getElementById('hTransferencia').textContent=fmt(byM.transferencia);
